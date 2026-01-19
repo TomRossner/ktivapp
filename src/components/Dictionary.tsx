@@ -9,6 +9,7 @@ const Dictionary = () => {
     const [editingKey, setEditingKey] = useState<string | null>(null);
     const [formKey, setFormKey] = useState("");
     const [formValue, setFormValue] = useState("");
+    const [deleteConfirm, setDeleteConfirm] = useState<{key: string, value: string} | null>(null);
 
     const KeyboardKey = ({children}: {children: React.ReactNode}) => (
         <span className={`inline-flex items-center justify-center min-w-[28px] h-7 px-2 mx-0.5 py-1 rounded text-sm font-semibold shadow ${
@@ -20,12 +21,13 @@ const Dictionary = () => {
         </span>
     );
 
-    const DictionaryEntry = ({keyText, value, isCustom, onEdit, onDelete}: {
+    const DictionaryEntry = ({keyText, value, isCustom, isOverridden, onEdit, onDelete}: {
         keyText: string, 
         value: string, 
         isCustom?: boolean,
-        onEdit?: () => void,
-        onDelete?: () => void
+        isOverridden?: boolean,
+        onEdit?: (e: React.MouseEvent) => void,
+        onDelete?: (e: React.MouseEvent) => void
     }) => {
         const renderKey = (key: string) => {
             if (key.includes('/')) {
@@ -48,16 +50,20 @@ const Dictionary = () => {
         };
 
         return (
-            <div className="flex items-center gap-2 group" dir="rtl">
+            <div className={`flex items-center gap-2 group ${isOverridden ? 'opacity-50' : ''}`} dir="rtl">
                 <div className="flex items-center gap-1">
                     {renderKey(keyText)}
                 </div>
                 <span className="text-gray-400 font-bold">←</span>
                 <span className="font-['Calibri'] font-medium text-base">{value}</span>
-                {isCustom && (
+                {isCustom && !isOverridden && (
                     <div className="flex items-center gap-1 ml-2">
                         <button
-                            onClick={onEdit}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                onEdit?.(e);
+                            }}
                             className={`p-1.5 rounded transition-colors ${
                                 theme === "dark" 
                                     ? "bg-blue-500 hover:bg-blue-600 text-white" 
@@ -68,7 +74,11 @@ const Dictionary = () => {
                             <FiEdit2 size={16} />
                         </button>
                         <button
-                            onClick={onDelete}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                onDelete?.(e);
+                            }}
                             className={`p-1.5 rounded transition-colors ${
                                 theme === "dark" 
                                     ? "bg-red-500 hover:bg-red-600 text-white" 
@@ -102,10 +112,28 @@ const Dictionary = () => {
         }
     };
 
-    const handleDelete = (key: string) => {
-        if (window.confirm(`Are you sure you want to delete the entry "${key}"?`)) {
+    const handleDeleteClick = (key: string, value: string, e?: React.MouseEvent) => {
+        e?.stopPropagation();
+        e?.preventDefault();
+        setDeleteConfirm({ key, value });
+    };
+
+    const confirmDelete = () => {
+        if (deleteConfirm) {
+            const key = deleteConfirm.key;
+            // If the deleted entry was being edited, cancel the edit form
+            if (editingKey === key) {
+                setEditingKey(null);
+                setFormKey("");
+                setFormValue("");
+            }
             removeDictionaryEntry(key);
+            setDeleteConfirm(null);
         }
+    };
+
+    const cancelDelete = () => {
+        setDeleteConfirm(null);
     };
 
     const startEdit = (key: string, value: string) => {
@@ -152,7 +180,6 @@ const Dictionary = () => {
             {key: "א־", value: allEntries["א־"] || "إ"},
             {key: "א~", value: allEntries["א~"] || "آ"},
             {key: "א֫", value: allEntries["א֫"] || "ٱ"},
-            {key: "א!", value: allEntries["א!"] || " ٰ"},
         ],
         [
             {key: "ב", value: allEntries["ב"] || "ب"},
@@ -257,37 +284,18 @@ const Dictionary = () => {
         return false;
     };
 
-    const getCustomKey = (entryKey: string): string | null => {
-        // Return the actual key from customDictionary
-        if (entryKey in customDictionary) {
-            return entryKey;
-        }
-        // For multi-key entries, find which one is custom
-        if (entryKey.includes('/')) {
-            const keys = entryKey.split('/');
-            for (const key of keys) {
-                const trimmedKey = key.trim();
-                if (trimmedKey in customDictionary) {
-                    return trimmedKey;
-                }
-            }
-        }
-        return null;
-    };
 
     const renderGroup = (group: Array<{key: string, value: string}>) => (
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
             {group.map((entry, idx) => {
                 const isCustom = isCustomEntry(entry.key);
-                const customKey = isCustom ? getCustomKey(entry.key) : null;
+                // In base groups, don't show edit/delete buttons, just grey out if overridden
                 return (
                     <DictionaryEntry 
                         key={idx} 
                         keyText={entry.key} 
                         value={entry.value}
-                        isCustom={isCustom}
-                        onEdit={isCustom && customKey ? () => startEdit(customKey, entry.value) : undefined}
-                        onDelete={isCustom && customKey ? () => handleDelete(customKey) : undefined}
+                        isOverridden={isCustom}
                     />
                 );
             })}
@@ -328,6 +336,44 @@ const Dictionary = () => {
                 </div>
             </div>
             <div className="overflow-y-auto text-black p-3 sm:p-4 max-h-[50vh] sm:max-h-[60vh]">
+                {deleteConfirm && (
+                    <div className={`mb-4 p-4 rounded-lg border ${
+                        theme === "dark" 
+                            ? "bg-yellow-50 border-yellow-300" 
+                            : "bg-yellow-50 border-yellow-300"
+                    }`} dir="rtl">
+                        <div className="flex justify-between items-center mb-3">
+                            <h3 className="font-bold text-black">אשר מחיקה</h3>
+                            <button
+                                onClick={cancelDelete}
+                                className="text-gray-600 hover:text-gray-800"
+                            >
+                                <FiX size={18} />
+                            </button>
+                        </div>
+                        <p className="text-black mb-4">
+                            האם אתה בטוח שברצונך למחוק את הערך "{deleteConfirm.key}" ← "{deleteConfirm.value}"?
+                        </p>
+                        <div className="flex gap-2 justify-end">
+                            <button
+                                onClick={cancelDelete}
+                                className={`px-3 py-1 rounded ${
+                                    theme === "dark"
+                                        ? "bg-gray-300 hover:bg-gray-400 text-black"
+                                        : "bg-gray-200 hover:bg-gray-300 text-black"
+                                }`}
+                            >
+                                ביטול
+                            </button>
+                            <button
+                                onClick={confirmDelete}
+                                className="px-3 py-1 rounded bg-red-500 hover:bg-red-600 text-white"
+                            >
+                                מחק
+                            </button>
+                        </div>
+                    </div>
+                )}
                 {(isAdding || editingKey) && (
                     <div className={`mb-4 p-3 rounded-lg border ${
                         theme === "dark" 
@@ -408,8 +454,11 @@ const Dictionary = () => {
                                     keyText={key}
                                     value={value}
                                     isCustom={true}
-                                    onEdit={() => startEdit(key, value)}
-                                    onDelete={() => handleDelete(key)}
+                                    onEdit={(e) => {
+                                        e.stopPropagation();
+                                        startEdit(key, value);
+                                    }}
+                                    onDelete={(e) => handleDeleteClick(key, value, e)}
                                 />
                             ))}
                         </div>

@@ -8,7 +8,6 @@ export const baseDictionary: Record<string, string> = {
     "א־": "إ",
     "א~": "آ",
     "א֫": "ٱ",
-    "א!": " ٰ",
     "ב": "ب",
     "ב'": "ڤ",
     "ת": "ت",
