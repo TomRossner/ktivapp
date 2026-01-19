@@ -1,4 +1,6 @@
-export const dictionary: Record<string, string> = {
+import { LS_getCustomDictionary } from './LS';
+
+export const baseDictionary: Record<string, string> = {
     "א": "ا",
     "א'": "ء",
     "י־": "ى",
@@ -6,6 +8,7 @@ export const dictionary: Record<string, string> = {
     "א־": "إ",
     "א~": "آ",
     "א֫": "ٱ",
+    "א!": " ٰ",
     "ב": "ب",
     "ב'": "ڤ",
     "ת": "ت",
@@ -69,3 +72,12 @@ export const dictionary: Record<string, string> = {
     " ": " ",
     "?": "؟"
 }
+
+// Get merged dictionary (base + custom entries)
+export const getDictionary = (): Record<string, string> => {
+    const customDict = LS_getCustomDictionary();
+    return { ...baseDictionary, ...customDict };
+}
+
+// Legacy export for backward compatibility
+export const dictionary = getDictionary();

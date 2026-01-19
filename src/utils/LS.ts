@@ -45,3 +45,12 @@ export const LS_getFontFamily = (): string => {
             return "Calibri";
     }
 }
+
+export const LS_getCustomDictionary = (): Record<string, string> => {
+    const customDict = localStorage.getItem('custom_dictionary');
+    return customDict ? JSON.parse(customDict) : {};
+}
+
+export const LS_setCustomDictionary = (dict: Record<string, string>): void => {
+    localStorage.setItem('custom_dictionary', JSON.stringify(dict));
+}

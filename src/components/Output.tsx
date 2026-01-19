@@ -1,19 +1,20 @@
 import { useContext, useEffect, useRef, useState } from 'react';
 import { TranscriptContext } from '../context/TranscriptContext';
-import {dictionary} from "../utils/dictionary";
+import { getDictionary } from "../utils/dictionary";
 import Button from './Button';
 import {MdOutlineContentCopy} from "react-icons/md";
 import {IoMdDoneAll} from "react-icons/io";
 import {TbSwitchHorizontal} from "react-icons/tb";
 
 const Output = () => {
-  const {inputValue, fontSize, isAutoTranscribeChecked, font} = useContext(TranscriptContext);
+  const {inputValue, fontSize, isAutoTranscribeChecked, font, customDictionary} = useContext(TranscriptContext);
   const [transcribedValue, setTranscribedValue] = useState<string>('');
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const [copied, setCopied] = useState(false);
   const [warning, setWarning] = useState<string[]>([]);
 
   const transcribe = (text: string): string => {
+    const dictionary = getDictionary(); // Get the latest merged dictionary
     const transcribedText: string[] = [];
     
     for (let i = 0; i < text.length; i++) {
@@ -59,7 +60,7 @@ const Output = () => {
     if (isAutoTranscribeChecked) {
       setTranscribedValue(transcribe(inputValue));
     }
-  }, [inputValue, isAutoTranscribeChecked])
+  }, [inputValue, isAutoTranscribeChecked, customDictionary])
 
   useEffect(() => {
     if (copied) {
